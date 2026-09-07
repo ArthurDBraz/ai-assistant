@@ -1,5 +1,5 @@
 import { Ollama, type Message, type Tool, type ToolCall } from "ollama";
-import { OpenMeteoWeatherService } from "./tools/open-meteo-weather-service.js";
+import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-service.js";
 
 const ollama = new Ollama({
   host: "http://192.168.0.166:11434",
