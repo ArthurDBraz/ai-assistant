@@ -2,11 +2,16 @@ import type { WeatherService, WeatherServiceResponse } from "./weather-service.j
 import type { OpenMeteoResponse } from "./open-meteo-response.js";
 
 export class OpenMeteoWeatherService implements WeatherService {
+    constructor(
+        private readonly defaultLatitude: number,
+        private readonly defaultLongitude: number,
+    ) {}
+
     getWeather(location: string): Promise<WeatherServiceResponse>;
     async getWeather(location: string): Promise<WeatherServiceResponse> {
 
-        const latitude : number = -30.03;
-        const longitude : number = -51.23;
+        const latitude : number = this.defaultLatitude;
+        const longitude : number = this.defaultLongitude;
 
         const url = new URL("https://api.open-meteo.com/v1/forecast");
         url.searchParams.set("latitude", latitude.toString());

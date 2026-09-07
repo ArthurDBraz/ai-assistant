@@ -20,4 +20,24 @@
 //       `DEFAULT_LATITUDE`, `DEFAULT_LONGITUDE`, `DEFAULT_CITY`,
 //       apply sensible defaults, and export a `Config` object.
 
-export {};
+export interface Config {
+    ollama: { host: string; model: string };
+    weather: { defaultLatitude: number; defaultLongitude: number; defaultCity: string };
+};
+
+export function loadConfig(): Config {
+    const latitude = Number(process.env.DEFAULT_LATITUDE);
+    const longitude = Number(process.env.DEFAULT_LONGITUDE);
+
+    return {
+        ollama: {
+            host: process.env.OLLAMA_HOST ?? "http://localhost:11434",
+            model: process.env.OLLAMA_MODEL ?? "llama3.2:3b",
+        },
+        weather: {
+            defaultLatitude: Number.isFinite(latitude) ? latitude : -30.03,
+            defaultLongitude: Number.isFinite(longitude) ? longitude : -51.23,
+            defaultCity: process.env.DEFAULT_CITY ?? "Porto Alegre",
+        },
+    };
+}

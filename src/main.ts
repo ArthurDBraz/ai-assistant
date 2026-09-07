@@ -1,11 +1,17 @@
 import { Ollama, type Message, type Tool, type ToolCall } from "ollama";
 import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-service.js";
+import { loadConfig } from "./config/config.js";
+
+const config = loadConfig()
 
 const ollama = new Ollama({
-  host: "http://192.168.0.166:11434",
+  host: config.ollama.host,
 });
 
-const weatherService = new OpenMeteoWeatherService();
+const weatherService = new OpenMeteoWeatherService(
+  config.weather.defaultLatitude,
+  config.weather.defaultLongitude,
+);
 
 const tools: Tool[] = [
   {
@@ -51,12 +57,12 @@ async function executeTool(call: ToolCall): Promise<any> {
   }
 
   const args = call.function.arguments as { city?: string };
-  return method(args.city ?? "Porto Alegre");
+  return method(args.city ?? config.weather.defaultCity);
 }
 
 const userInput =
   process.argv.slice(2).join(" ") ||
-  "Tell me the temperature and the date in Porto Alegre today and suggest what type of clothing I should wear. Less verbose";
+  `Tell me the temperature and the date in ${config.weather.defaultCity} today and suggest what type of clothing I should wear. Less verbose`;
 
 const messages: Message[] = [
   {
@@ -67,7 +73,7 @@ const messages: Message[] = [
 
 while (true) {
   const stream = await ollama.chat({
-    model: "llama3.2:3b",
+    model: config.ollama.model,
     messages,
     tools,
     stream: true,
