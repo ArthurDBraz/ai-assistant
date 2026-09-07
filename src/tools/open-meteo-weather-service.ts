@@ -3,9 +3,7 @@ import type { OpenMeteoResponse } from "./open-meteo-response.js";
 
 export class OpenMeteoWeatherService implements WeatherService {
     getWeather(location: string): Promise<WeatherServiceResponse>;
-    async getWeather(
-        location: string
-    ): Promise<WeatherServiceResponse> {
+    async getWeather(location: string): Promise<WeatherServiceResponse> {
 
         const latitude : number = -30.03;
         const longitude : number = -51.23;

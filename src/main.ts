@@ -36,7 +36,7 @@ async function getCurrentDateTime() : Promise<Date> {
 }
 
 const toolMap: Record<string, Function> = {
-  get_temperature: weatherService.getWeather,
+  get_temperature: weatherService.getWeather.bind(weatherService),
   get_current_datetime: getCurrentDateTime
 }
 
