@@ -1,6 +1,8 @@
 import { Ollama, type Message, type Tool, type ToolCall } from "ollama";
 import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-service.js";
 import { loadConfig } from "./config/config.js";
+import { OllamaLLMClient } from "./llm/ollama-llm-client.js";
+import type { ToolSchema } from "./llm/llm-client.js";
 
 const config = loadConfig()
 
@@ -13,10 +15,8 @@ const weatherService = new OpenMeteoWeatherService(
   config.weather.defaultLongitude,
 );
 
-const tools: Tool[] = [
+const tools: ToolSchema[] = [
   {
-    type: "function",
-    function: {
       name: "get_temperature",
       description: "Get the current temperature for a city",
       parameters: {
@@ -26,14 +26,14 @@ const tools: Tool[] = [
           city: { type: "string", description: "The name of the city" },
         },
       },
-    },
   },
   {
-    type: "function",
-    function: {
       name: "get_current_datetime",
-      description: "Get the current date and time"
-    },
+      description: "Get the current date and time",
+      parameters: {
+        type: "object",
+        properties: {}
+      }
   },
 ];
 
@@ -72,23 +72,16 @@ const messages: Message[] = [
 ];
 
 while (true) {
-  const stream = await ollama.chat({
-    model: config.ollama.model,
-    messages,
-    tools,
-    stream: true,
-    think: false,
-  });
+
+  const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
+
+  const stream = llmClient.chat([], tools);
 
   let content = "";
   const toolCalls: ToolCall[] = [];
 
   for await (const chunk of stream) {
-    content += chunk.message.content ?? "";
-
-    if (chunk.message.tool_calls) {
-      toolCalls.push(...(chunk.message.tool_calls as ToolCall[]));
-    }
+    content += chunk.content ?? "";
   }
 
   if (toolCalls.length === 0) {
