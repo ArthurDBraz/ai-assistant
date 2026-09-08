@@ -1,14 +1,9 @@
-import { Ollama, type Message, type Tool, type ToolCall } from "ollama";
 import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-service.js";
 import { loadConfig } from "./config/config.js";
 import { OllamaLLMClient } from "./llm/ollama-llm-client.js";
-import type { ToolSchema } from "./llm/llm-client.js";
+import type { Message, ToolCall, ToolSchema } from "./llm/llm-client.js";
 
 const config = loadConfig()
-
-const ollama = new Ollama({
-  host: config.ollama.host,
-});
 
 const weatherService = new OpenMeteoWeatherService(
   config.weather.defaultLatitude,
@@ -46,17 +41,15 @@ const toolMap: Record<string, Function> = {
   get_current_datetime: getCurrentDateTime
 }
 
-
-
 async function executeTool(call: ToolCall): Promise<any> {
 
-  const method = toolMap[call.function.name]
+  const method = toolMap[call.name]
 
   if (!method) {
-    throw new Error(`Unknown tool: ${call.function.name}`);
+    throw new Error(`Unknown tool: ${call.name}`);
   }
 
-  const args = call.function.arguments as { city?: string };
+  const args = call.arguments as { city?: string };
   return method(args.city ?? config.weather.defaultCity);
 }
 
@@ -75,13 +68,17 @@ while (true) {
 
   const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
 
-  const stream = llmClient.chat([], tools);
+  const stream = llmClient.chat(messages, tools);
 
   let content = "";
   const toolCalls: ToolCall[] = [];
 
   for await (const chunk of stream) {
     content += chunk.content ?? "";
+
+    if (chunk.toolCall) {
+      toolCalls.push(chunk.toolCall);
+    }
   }
 
   if (toolCalls.length === 0) {
@@ -92,7 +89,7 @@ while (true) {
   messages.push({
     role: "assistant",
     content,
-    tool_calls: toolCalls,
+    toolCalls: toolCalls,
   });
 
   for (const call of toolCalls) {
@@ -100,7 +97,7 @@ while (true) {
 
     messages.push({
       role: "tool",
-      tool_name: call.function.name,
+      toolName: call.name,
       content: JSON.stringify(result),
     });
   }
