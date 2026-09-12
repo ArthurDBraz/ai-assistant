@@ -25,4 +25,9 @@
 // TODO: define the `Tool` interface referencing your own `ToolSchema` type
 //       (from `../llm/llm-client.ts`), never `ollama`'s `Tool` type.
 
-export {};
+import type { ToolSchema } from "../llm/llm-client.js";
+
+export interface Tool {
+    readonly schema: ToolSchema;
+    execute(args: Record<string, unknown>): Promise<unknown>;
+}

@@ -35,4 +35,24 @@
 // TODO: implement using the schema block currently in `main.ts` and the
 //       `weatherService.getWeather` call in `executeTool`.
 
-export {};
+import type { ToolSchema } from "../../llm/llm-client.js";
+import type { Tool } from "../tool.js"
+import type { WeatherService } from "./weather-service.js";
+
+export class GetTemperatureTool implements Tool {
+
+    readonly schema: ToolSchema = {
+      name: "get_temperature",
+      description: "Get the current temperature for a city",
+      parameters: {
+        type: "object",
+        required: ["city"],
+        properties: { city: { type: "string", description: "The name of the city" } },
+      },
+    }
+    constructor (private readonly weatherService: WeatherService) {}
+
+    async execute(args: { city?: string }): Promise<unknown> {
+        return this.weatherService.getWeather(args.city ?? "");
+    }
+}

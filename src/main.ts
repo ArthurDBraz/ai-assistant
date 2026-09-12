@@ -2,6 +2,9 @@ import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-serv
 import { loadConfig } from "./config/config.js";
 import { OllamaLLMClient } from "./llm/ollama-llm-client.js";
 import type { Message, ToolCall, ToolSchema } from "./llm/llm-client.js";
+import type { Tool } from "./tools/tool.js";
+import { GetCurrentDateTimeTool } from "./tools/datetime/get-current-datetime-tool.js";
+import { GetTemperatureTool } from "./tools/weather/get-temperature-tool.js";
 
 const config = loadConfig()
 
@@ -10,52 +13,21 @@ const weatherService = new OpenMeteoWeatherService(
   config.weather.defaultLongitude,
 );
 
-const tools: ToolSchema[] = [
-  {
-      name: "get_temperature",
-      description: "Get the current temperature for a city",
-      parameters: {
-        type: "object",
-        required: ["city"],
-        properties: {
-          city: { type: "string", description: "The name of the city" },
-        },
-      },
-  },
-  {
-      name: "get_current_datetime",
-      description: "Get the current date and time",
-      parameters: {
-        type: "object",
-        properties: {}
-      }
-  },
+const tools: Tool[] = [
+  new GetTemperatureTool(weatherService),
+  new GetCurrentDateTimeTool()
 ];
 
-async function getCurrentDateTime() : Promise<Date> {
-  return new Date();
-}
-
-const toolMap: Record<string, Function> = {
-  get_temperature: weatherService.getWeather.bind(weatherService),
-  get_current_datetime: getCurrentDateTime
-}
-
-async function executeTool(call: ToolCall): Promise<any> {
-
-  const method = toolMap[call.name]
-
-  if (!method) {
-    throw new Error(`Unknown tool: ${call.name}`);
-  }
-
-  const args = call.arguments as { city?: string };
-  return method(args.city ?? config.weather.defaultCity);
-}
+const toolSchemas = tools.map((tool) => tool.schema);
 
 const userInput =
   process.argv.slice(2).join(" ") ||
-  `Tell me the temperature and the date in ${config.weather.defaultCity} today and suggest what type of clothing I should wear. Less verbose`;
+  `## Context
+  You are a personal assistant. You are going to give short answers that need to fit in a card in a dashboard.
+
+  ## Request
+  Tell me the temperature and the date in ${config.weather.defaultCity} today and suggest what type of clothing I should wear. Less verbose
+  `;
 
 const messages: Message[] = [
   {
@@ -68,7 +40,7 @@ while (true) {
 
   const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
 
-  const stream = llmClient.chat(messages, tools);
+  const stream = llmClient.chat(messages, toolSchemas);
 
   let content = "";
   const toolCalls: ToolCall[] = [];
@@ -102,3 +74,14 @@ while (true) {
     });
   }
 }
+
+async function executeTool(call: ToolCall) {
+  const tool = tools.find(t => t.schema.name === call.name);
+
+  if (tool === undefined) {
+    throw Error(`Tool "${call.name}" not found`);
+  }
+
+  await tool?.execute(call.arguments);
+}
+
