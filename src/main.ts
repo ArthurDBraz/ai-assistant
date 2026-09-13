@@ -1,10 +1,11 @@
 import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-service.js";
 import { loadConfig } from "./config/config.js";
 import { OllamaLLMClient } from "./llm/ollama-llm-client.js";
-import type { Message, ToolCall, ToolSchema } from "./llm/llm-client.js";
 import type { Tool } from "./tools/tool.js";
 import { GetCurrentDateTimeTool } from "./tools/datetime/get-current-datetime-tool.js";
 import { GetTemperatureTool } from "./tools/weather/get-temperature-tool.js";
+import { Assistant } from "./assistant/assistant.js";
+import { ConsolePublisher } from "./publishers/console-publisher/console-publisher.js";
 
 const config = loadConfig()
 
@@ -18,8 +19,6 @@ const tools: Tool[] = [
   new GetCurrentDateTimeTool()
 ];
 
-const toolSchemas = tools.map((tool) => tool.schema);
-
 const userInput =
   process.argv.slice(2).join(" ") ||
   `## Context
@@ -29,59 +28,9 @@ const userInput =
   Tell me the temperature and the date in ${config.weather.defaultCity} today and suggest what type of clothing I should wear. Less verbose
   `;
 
-const messages: Message[] = [
-  {
-    role: "user",
-    content: userInput,
-  },
-];
+const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
 
-while (true) {
+const publisher = new ConsolePublisher();
 
-  const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
-
-  const stream = llmClient.chat(messages, toolSchemas);
-
-  let content = "";
-  const toolCalls: ToolCall[] = [];
-
-  for await (const chunk of stream) {
-    content += chunk.content ?? "";
-
-    if (chunk.toolCall) {
-      toolCalls.push(chunk.toolCall);
-    }
-  }
-
-  if (toolCalls.length === 0) {
-    console.log(content);
-    break;
-  }
-
-  messages.push({
-    role: "assistant",
-    content,
-    toolCalls: toolCalls,
-  });
-
-  for (const call of toolCalls) {
-    const result = await executeTool(call);
-
-    messages.push({
-      role: "tool",
-      toolName: call.name,
-      content: JSON.stringify(result),
-    });
-  }
-}
-
-async function executeTool(call: ToolCall) {
-  const tool = tools.find(t => t.schema.name === call.name);
-
-  if (tool === undefined) {
-    throw Error(`Tool "${call.name}" not found`);
-  }
-
-  await tool?.execute(call.arguments);
-}
-
+const assistant = new Assistant(llmClient, tools, publisher)
+await assistant.run(userInput);

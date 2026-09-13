@@ -26,4 +26,6 @@
 //       \u2014 you asked to keep the code unaware that Home Assistant will
 //       eventually be wired.
 
-export {};
+export interface OutputPublisher {
+    publish(text: string): Promise<void>;
+}
