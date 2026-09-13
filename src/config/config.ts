@@ -23,6 +23,7 @@
 export interface Config {
     ollama: { host: string; model: string };
     weather: { defaultLatitude: number; defaultLongitude: number; defaultCity: string };
+    publisher: { host: string, token: string };
 };
 
 export function loadConfig(): Config {
@@ -39,5 +40,9 @@ export function loadConfig(): Config {
             defaultLongitude: Number.isFinite(longitude) ? longitude : -51.23,
             defaultCity: process.env.DEFAULT_CITY ?? "Porto Alegre",
         },
+        publisher: {
+            host: process.env.HOME_ASSISTANT_HOST ?? "",
+            token: process.env.HOME_ASSISTANT_TOKEN ?? "",
+        }
     };
 }
