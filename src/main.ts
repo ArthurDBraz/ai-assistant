@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { parseArgs } from "node:util";
 import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-service.js";
 import { loadConfig } from "./config/config.js";
 import { OllamaLLMClient } from "./llm/ollama-llm-client.js";
@@ -11,6 +13,9 @@ import { HomeAssistantPublisher } from "./publishers/home-assistant-publisher/ho
 import type { PublisherConfig } from "./config/config.js";
 import type { OutputPublisher } from "./publishers/output-publisher.js";
 
+const options = parseCliOptions();
+const userInput = resolvePrompt(options);
+
 const config = loadConfig()
 
 const weatherService = new OpenMeteoWeatherService(
@@ -23,15 +28,6 @@ const tools: Tool[] = [
   new GetCurrentDateTimeTool()
 ];
 
-const userInput =
-  process.argv.slice(2).join(" ") ||
-  `## Context
-  You are a personal assistant. You are going to give short answers that need to fit in a card in a dashboard.
-
-  ## Request
-  Tell me the temperature and the date in ${config.weather.defaultCity} today and suggest what type of clothing I should wear. Less verbose
-  `;
-
 const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
 
 const publishers = config.publishers.map(createPublisher);
@@ -39,6 +35,51 @@ const publisher = new FanoutPublisher(publishers);
 
 const assistant = new Assistant(llmClient, tools, publisher)
 await assistant.run(userInput);
+
+function parseCliOptions() {
+  const { values } = parseArgs({
+    options: {
+      "prompt-file": {
+        type: "string",
+        short: "f",
+      },
+      prompt: {
+        type: "string",
+        short: "p",
+      },
+      verbose: {
+        type: "boolean",
+        short: "v",
+        default: false,
+      },
+    },
+  });
+
+  return {
+    prompt: values.prompt,
+    promptFile: values["prompt-file"],
+    verbose: values.verbose,
+  };
+}
+
+function resolvePrompt(options: ReturnType<typeof parseCliOptions>): string {
+  if (options.prompt && options.promptFile) {
+    throw new Error("Use either --prompt or --prompt-file, not both");
+  }
+
+  if (options.prompt) {
+    if (options.verbose) {
+      console.error("Using the prompt provided on the command line");
+    }
+    return options.prompt;
+  }
+
+  const promptFile = options.promptFile ?? "prompt.md";
+  if (options.verbose) {
+    console.error(`Reading prompt from ${promptFile}`);
+  }
+  return readFileSync(promptFile, "utf8");
+}
 
 function createPublisher(config: PublisherConfig): OutputPublisher {
   switch (config.type) {
