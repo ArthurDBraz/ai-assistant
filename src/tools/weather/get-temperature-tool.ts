@@ -53,6 +53,6 @@ export class GetTemperatureTool implements Tool {
     constructor (private readonly weatherService: WeatherService) {}
 
     async execute(args: { city?: string }): Promise<unknown> {
-        return this.weatherService.getWeather(args.city ?? "");
+        return await this.weatherService.getWeather(args.city ?? "");
     }
 }

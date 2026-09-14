@@ -1,48 +1,116 @@
-// Typed configuration loaded from environment variables.
-//
-// Why this exists:
-//   The rest of the codebase should never read `process.env` directly.
-//   Everything funnels through this file so there is exactly one place that
-//   knows which env vars exist, what they mean, and what their defaults are.
-//   Swapping environments (dev laptop, Raspberry Pi, container) becomes a
-//   matter of changing the `.env` file, not the code.
-//
-// Suggested shape (fill in yourself):
-//
-//   export interface Config {
-//     ollama: { host: string; model: string };
-//     weather: { defaultLatitude: number; defaultLongitude: number; defaultCity: string };
-//   }
-//
-//   export function loadConfig(): Config { ... }
-//
-// TODO: read `process.env.OLLAMA_HOST`, `OLLAMA_MODEL`,
-//       `DEFAULT_LATITUDE`, `DEFAULT_LONGITUDE`, `DEFAULT_CITY`,
-//       apply sensible defaults, and export a `Config` object.
+import { readFileSync } from "node:fs";
+
+export type PublisherConfig =
+    | { type: "console" }
+    | {
+          type: "home-assistant";
+          baseUrl: string;
+          token: string;
+          entityId: string;
+      };
 
 export interface Config {
     ollama: { host: string; model: string };
-    weather: { defaultLatitude: number; defaultLongitude: number; defaultCity: string };
-    publisher: { host: string, token: string };
-};
+    weather: {
+        defaultLatitude: number;
+        defaultLongitude: number;
+        defaultCity: string;
+    };
+    publishers: PublisherConfig[];
+}
+
+interface FileConfig {
+    ollama: { host: string; model: string };
+    weather: {
+        defaultLatitude: number;
+        defaultLongitude: number;
+        defaultCity: string;
+    };
+    publishers: FilePublisherConfig[];
+}
+
+type FilePublisherConfig =
+    | { type: "console" }
+    | {
+          type: "home-assistant";
+          baseUrl: string;
+          tokenEnv: string;
+          entityId: string;
+      };
 
 export function loadConfig(): Config {
-    const latitude = Number(process.env.DEFAULT_LATITUDE);
-    const longitude = Number(process.env.DEFAULT_LONGITUDE);
+    const path = new URL("../../config.json", import.meta.url);
+    const fileConfig: unknown = JSON.parse(readFileSync(path, "utf8"));
+
+    if (!isFileConfig(fileConfig)) {
+        throw new Error("config.json has an invalid format");
+    }
 
     return {
-        ollama: {
-            host: process.env.OLLAMA_HOST ?? "http://localhost:11434",
-            model: process.env.OLLAMA_MODEL ?? "llama3.2:3b",
-        },
-        weather: {
-            defaultLatitude: Number.isFinite(latitude) ? latitude : -30.03,
-            defaultLongitude: Number.isFinite(longitude) ? longitude : -51.23,
-            defaultCity: process.env.DEFAULT_CITY ?? "Porto Alegre",
-        },
-        publisher: {
-            host: process.env.HOME_ASSISTANT_HOST ?? "",
-            token: process.env.HOME_ASSISTANT_TOKEN ?? "",
-        }
+        ...fileConfig,
+        publishers: fileConfig.publishers.map((publisher) => {
+            if (publisher.type === "console") {
+                return publisher;
+            }
+
+            const token = process.env[publisher.tokenEnv];
+            if (!token) {
+                throw new Error(`missing environment variable: ${publisher.tokenEnv}`);
+            }
+
+            return {
+                type: "home-assistant",
+                baseUrl: publisher.baseUrl,
+                token,
+                entityId: publisher.entityId,
+            };
+        }),
     };
+}
+
+function isFileConfig(value: unknown): value is FileConfig {
+    if (!isRecord(value)) {
+        return false;
+    }
+
+    return (
+        isRecord(value.ollama) &&
+        isString(value.ollama.host) &&
+        isString(value.ollama.model) &&
+        isRecord(value.weather) &&
+        isNumber(value.weather.defaultLatitude) &&
+        isNumber(value.weather.defaultLongitude) &&
+        isString(value.weather.defaultCity) &&
+        Array.isArray(value.publishers) &&
+        value.publishers.every(isFilePublisherConfig)
+    );
+}
+
+function isFilePublisherConfig(value: unknown): value is FilePublisherConfig {
+    if (!isRecord(value) || !isString(value.type)) {
+        return false;
+    }
+
+    if (value.type === "console") {
+        return true;
+    }
+
+    return (
+        value.type === "home-assistant" &&
+        isString(value.baseUrl) &&
+        isString(value.tokenEnv) &&
+        isString(value.entityId)
+    );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+function isString(value: unknown): value is string {
+    return typeof value === "string";
+}
+
+function isNumber(value: unknown): value is number {
+    return typeof value === "number" && Number.isFinite(value);
 }

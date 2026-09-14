@@ -1,0 +1,22 @@
+{
+  "ollama": {
+    "host": "http://localhost:11434",
+    "model": "llama3.2:3b"
+  },
+  "weather": {
+    "defaultLatitude": -30.03,
+    "defaultLongitude": -51.23,
+    "defaultCity": "Porto Alegre"
+  },
+  "publishers": [
+    {
+      "type": "console"
+    },
+    {
+      "type": "home-assistant",
+      "baseUrl": "http://localhost:8123",
+      "tokenEnv": "HOME_ASSISTANT_TOKEN",
+      "entityId": "input_text.ai_assistant_response"
+    }
+  ]
+}
