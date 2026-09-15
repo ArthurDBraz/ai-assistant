@@ -28,6 +28,7 @@ import type {
     LlmChunk,
     LlmClient,
     Message,
+    ChatOptions,
     ToolCall as LocalToolCall,
     ToolSchema,
 } from "./llm-client.js";
@@ -51,13 +52,18 @@ export class OllamaLLMClient implements LlmClient{
             });
     }
 
-    async *chat(messages: Message[], tools: ToolSchema[]): AsyncIterable<LlmChunk> {
+    async *chat(
+        messages: Message[],
+        tools: ToolSchema[],
+        options?: ChatOptions,
+    ): AsyncIterable<LlmChunk> {
         const stream = await this.ollama.chat({
             model: this.model,
             messages: messages.map(message => this.toOllamaMessage(message)),
             tools: tools.map(tool => this.toOllamaTool(tool)),
             stream: true,
             think: false,
+            ...(options?.responseFormat ? { format: options.responseFormat } : {}),
         });
 
         for await (const chunk of stream) {

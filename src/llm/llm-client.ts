@@ -40,12 +40,19 @@ export interface JsonSchemaProperty {
     description?: string;
     enum?: string[];
     items?: JsonSchemaProperty;
+    properties?: Record<string, JsonSchemaProperty>;
+    required?: string[];
+    additionalProperties?: boolean | JsonSchemaProperty | JsonSchemaComposition;
+    anyOf?: JsonSchemaProperty[];
 }
 
-export interface JsonSchema {
+export interface JsonSchemaComposition {
+    anyOf: JsonSchemaProperty[];
+}
+
+export interface JsonSchema extends JsonSchemaProperty {
     type: "object";
     properties: Record<string, JsonSchemaProperty>;
-    required?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +128,10 @@ export interface LlmChunk {
     done?: boolean;
 }
 
+export interface ChatOptions {
+    responseFormat?: JsonSchema;
+}
+
 // ---------------------------------------------------------------------------
 // The LLM client interface — the seam.
 //
@@ -130,5 +141,9 @@ export interface LlmChunk {
 // ---------------------------------------------------------------------------
 
 export interface LlmClient {
-    chat(messages: Message[], tools: ToolSchema[]): AsyncIterable<LlmChunk>;
+    chat(
+        messages: Message[],
+        tools: ToolSchema[],
+        options?: ChatOptions,
+    ): AsyncIterable<LlmChunk>;
 }
