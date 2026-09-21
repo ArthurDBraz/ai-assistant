@@ -10,6 +10,7 @@ import type {
 } from "../llm/llm-client.js";
 import type { OutputPublisher } from "../publishers/output-publisher.js";
 import type { Tool } from "../tools/tool.js";
+import { GetCurrentDateTimeTool } from "../tools/datetime/get-current-datetime-tool.js";
 
 class FakeLlmClient implements LlmClient {
     readonly calls: { messages: Message[]; options: ChatOptions | undefined }[] = [];
@@ -59,7 +60,7 @@ test("publishes the display text from a valid structured response", async () => 
 
 test("executes tools before parsing the final structured response", async () => {
     const llmClient = new FakeLlmClient([
-        [{ toolCall: { id: "call-1", name: "current_time", arguments: {} } }],
+        [{ toolCall: { id: "call-1", name: "get_current_datetime", arguments: {} } }],
         [{ content: JSON.stringify({
             response: "It is noon.",
             intent: "time.current",
@@ -67,21 +68,24 @@ test("executes tools before parsing the final structured response", async () => 
         }) }],
     ]);
     const publisher = new RecordingPublisher();
-    const tool: Tool = {
-        schema: {
-            name: "current_time",
-            description: "Gets the current time",
-            parameters: { type: "object", properties: {} },
-        },
-        async execute() {
-            return { time: "12:00" };
-        },
-    };
+    const tool: Tool = new GetCurrentDateTimeTool(
+        "America/Sao_Paulo",
+        () => new Date("2026-09-22T01:30:00.000Z"),
+    );
 
     await new Assistant(llmClient, [tool], publisher).run("What time is it?");
 
     assert.deepEqual(publisher.published, ["It is noon."]);
     assert.equal(llmClient.calls.length, 2);
+    const toolResult = llmClient.calls[1]?.messages.at(-1);
+    assert.equal(toolResult?.role, "tool");
+    assert.deepEqual(JSON.parse(toolResult?.content ?? ""), {
+        date: "2026-09-21",
+        time: "22:30:00",
+        datetime: "2026-09-21T22:30:00",
+        weekday: "Monday",
+        timeZone: "America/Sao_Paulo",
+    });
 });
 
 test("retries one invalid response before publishing the corrected display text", async () => {

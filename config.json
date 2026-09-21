@@ -8,6 +8,9 @@
     "defaultLongitude": -51.23,
     "defaultCity": "Porto Alegre"
   },
+  "datetime": {
+    "defaultTimeZone": "America/Sao_Paulo"
+  },
   "publishers": [
     {
       "type": "console"

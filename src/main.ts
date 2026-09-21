@@ -25,7 +25,7 @@ const weatherService = new OpenMeteoWeatherService(
 
 const tools: Tool[] = [
   new GetTemperatureTool(weatherService),
-  new GetCurrentDateTimeTool()
+  new GetCurrentDateTimeTool(config.datetime.defaultTimeZone)
 ];
 
 const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);

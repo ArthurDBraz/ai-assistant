@@ -16,6 +16,7 @@ export interface Config {
         defaultLongitude: number;
         defaultCity: string;
     };
+    datetime: { defaultTimeZone: string };
     publishers: PublisherConfig[];
 }
 
@@ -26,6 +27,7 @@ interface FileConfig {
         defaultLongitude: number;
         defaultCity: string;
     };
+    datetime: { defaultTimeZone: string };
     publishers: FilePublisherConfig[];
 }
 
@@ -81,6 +83,8 @@ function isFileConfig(value: unknown): value is FileConfig {
         isNumber(value.weather.defaultLatitude) &&
         isNumber(value.weather.defaultLongitude) &&
         isString(value.weather.defaultCity) &&
+        isRecord(value.datetime) &&
+        isString(value.datetime.defaultTimeZone) &&
         Array.isArray(value.publishers) &&
         value.publishers.every(isFilePublisherConfig)
     );
