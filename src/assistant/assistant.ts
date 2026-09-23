@@ -46,9 +46,12 @@ export class Assistant {
         private readonly publisher: OutputPublisher,
     ) {}
 
-    async run(userInput: string): Promise<void> {
+    async run(userInput: string, systemPrompt?: string): Promise<void> {
 
-        const messages: Message[] = [{ role: "user", content: userInput }];
+        const messages: Message[] = [
+            ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
+            { role: "user", content: userInput },
+        ];
         const toolSchemas = this.tools.map((tool) => tool.schema);
         let responseAttempts = 0;
         

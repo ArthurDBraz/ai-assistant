@@ -58,6 +58,27 @@ test("publishes the display text from a valid structured response", async () => 
     ]);
 });
 
+test("sends the system prompt before the user request", async () => {
+    const llmClient = new FakeLlmClient([[{
+        content: JSON.stringify({
+            response: "It is 20 C.",
+            intent: "weather.current",
+            status: "success",
+        }),
+    }]]);
+    const publisher = new RecordingPublisher();
+
+    await new Assistant(llmClient, [], publisher).run(
+        "What is the weather?",
+        "Use tools before answering.",
+    );
+
+    assert.deepEqual(llmClient.calls[0]?.messages, [
+        { role: "system", content: "Use tools before answering." },
+        { role: "user", content: "What is the weather?" },
+    ]);
+});
+
 test("executes tools before parsing the final structured response", async () => {
     const llmClient = new FakeLlmClient([
         [{ toolCall: { id: "call-1", name: "get_current_datetime", arguments: {} } }],

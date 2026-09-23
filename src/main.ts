@@ -15,6 +15,7 @@ import type { OutputPublisher } from "./publishers/output-publisher.js";
 
 const options = parseCliOptions();
 const userInput = resolvePrompt(options);
+const systemPrompt = resolveSystemPrompt(options);
 
 const config = loadConfig()
 
@@ -34,7 +35,7 @@ const publishers = config.publishers.map(createPublisher);
 const publisher = new FanoutPublisher(publishers);
 
 const assistant = new Assistant(llmClient, tools, publisher)
-await assistant.run(userInput);
+await assistant.run(userInput, systemPrompt);
 
 function parseCliOptions() {
   const { values } = parseArgs({
@@ -74,11 +75,19 @@ function resolvePrompt(options: ReturnType<typeof parseCliOptions>): string {
     return options.prompt;
   }
 
-  const promptFile = options.promptFile ?? "prompt.md";
+  const promptFile = options.promptFile ?? "prompts/user/current.md";
   if (options.verbose) {
     console.error(`Reading prompt from ${promptFile}`);
   }
   return readFileSync(promptFile, "utf8");
+}
+
+function resolveSystemPrompt(options: ReturnType<typeof parseCliOptions>): string {
+  const systemPromptFile = "prompts/system/current.md";
+  if (options.verbose) {
+    console.error(`Reading system prompt from ${systemPromptFile}`);
+  }
+  return readFileSync(systemPromptFile, "utf8");
 }
 
 function createPublisher(config: PublisherConfig): OutputPublisher {
