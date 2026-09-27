@@ -1,1 +1,1 @@
-Give me the current weather and a clothing suggestion for Porto Alegre.
+Give me the current weather and a clothing suggestion for today.

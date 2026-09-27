@@ -1,7 +1,7 @@
 {
   "ollama": {
-    "host": "http://localhost:11434",
-    "model": "llama3.2:3b"
+    "host": "http://192.168.0.166:11434",
+    "model": "qwen3:4b-instruct"
   },
   "weather": {
     "defaultLatitude": -30.03,
@@ -17,7 +17,7 @@
     },
     {
       "type": "home-assistant",
-      "baseUrl": "http://localhost:8123",
+      "baseUrl": "http://192.168.0.166:8123",
       "tokenEnv": "HOME_ASSISTANT_TOKEN",
       "entityId": "input_text.ai_assistant_response"
     }
