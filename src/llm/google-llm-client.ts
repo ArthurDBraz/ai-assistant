@@ -10,23 +10,53 @@ export class GoogleLlmClient implements LlmClient {
     }
 
     async *chat(messages: Message[], tools: ToolSchema[], options?: ChatOptions): AsyncIterable<LlmChunk> {
-        const response = this.ai.models.generateContent({
+        const systemMessages = messages.filter((message) => message.role === "system");
+        const response = await this.ai.models.generateContentStream({
             model: this.model,
-            contents: messages.map(this.toGoogleGenAIMessage),
+            contents: messages
+                .filter((message) => message.role !== "system")
+                .map(this.toGoogleGenAIMessage),
             config: {
                 ...(tools.length > 0 ? { tools: tools.map((tool) => ({
                     functionDeclarations: [this.toGoogleTool(tool)],
                 })) } : {}),
+                ...(systemMessages.length > 0 ? {
+                    systemInstruction: systemMessages.map((message) => message.content).join("\n"),
+                } : {}),
+                ...(options?.responseFormat ? {
+                    responseMimeType: "application/json",
+                    responseJsonSchema: options.responseFormat,
+                } : {}),
             },
         });
 
-        return (await response).text;
+        for await (const chunk of response) {
+            if (chunk.text) {
+                yield { content: chunk.text };
+            }
+
+            for (const call of chunk.functionCalls ?? []) {
+                if (!call.name || !call.args) {
+                    continue;
+                }
+
+                yield {
+                    toolCall: {
+                        id: call.id ?? crypto.randomUUID(),
+                        name: call.name,
+                        arguments: call.args,
+                    },
+                };
+            }
+        }
+
+        yield { done: true };
     }
 
     private toGoogleGenAIMessage(message: Message): Content {
         const parts: Part[] = [];
 
-        if (message.content) {
+        if (message.content && message.role !== "tool") {
             parts.push({ text: message.content });
         }
 
