@@ -104,6 +104,7 @@ export class Assistant {
                 messages.push({
                     role: "tool",
                     toolName: call.name,
+                    toolCallId: call.id,
                     content: JSON.stringify(result),
                 });
             }

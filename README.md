@@ -23,7 +23,7 @@ npm install
 cp .env.example .env
 ```
 
-Update `config.json` and `.env` for the environment. Build and run the assistant with:
+Add a Gemini API key to `.env` as `GEMINI_API_KEY` (you can create one in [Google AI Studio](https://aistudio.google.com/apikey)). Update `config.json` and `.env` for the environment. Build and run the assistant with:
 
 ```sh
 npm run build
@@ -54,6 +54,7 @@ Home Assistant requires `HOME_ASSISTANT_TOKEN` in `.env` when enabled in `config
 
 ## Current Supported Model Providers
 
-- **Ollama**: connects to an Ollama server using the host and model configured in `config.json`.
+- **Google Gemini**: the active provider. The model is configured under `gemini.model` in `config.json`; authentication uses `GEMINI_API_KEY` from `.env`. The Gemini client supports streaming responses, tool calls, and structured JSON responses.
+- **Ollama**: an Ollama client is included and connects using the host and model configured under `ollama` in `config.json`, but startup currently uses Gemini.
 
-The default configuration uses `http://localhost:11434` and `llama3.2:3b`.
+The Gemini model configured in `config.json` is `gemini-3.7-flash`.

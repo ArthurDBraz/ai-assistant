@@ -81,7 +81,12 @@ test("sends the system prompt before the user request", async () => {
 
 test("executes tools before parsing the final structured response", async () => {
     const llmClient = new FakeLlmClient([
-        [{ toolCall: { id: "call-1", name: "get_current_datetime", arguments: {} } }],
+        [{ toolCall: {
+            id: "call-1",
+            name: "get_current_datetime",
+            arguments: {},
+            thoughtSignature: "signature-1",
+        } }],
         [{ content: JSON.stringify({
             response: "It is noon.",
             intent: "time.current",
@@ -100,6 +105,8 @@ test("executes tools before parsing the final structured response", async () => 
     assert.equal(llmClient.calls.length, 2);
     const toolResult = llmClient.calls[1]?.messages.at(-1);
     assert.equal(toolResult?.role, "tool");
+    assert.equal(toolResult?.toolCallId, "call-1");
+    assert.equal(llmClient.calls[1]?.messages.at(-2)?.toolCalls?.[0]?.thoughtSignature, "signature-1");
     assert.deepEqual(JSON.parse(toolResult?.content ?? ""), {
         date: "2026-09-21",
         time: "22:30:00",

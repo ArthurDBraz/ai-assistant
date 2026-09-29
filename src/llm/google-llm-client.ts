@@ -35,8 +35,9 @@ export class GoogleLlmClient implements LlmClient {
                 yield { content: chunk.text };
             }
 
-            for (const call of chunk.functionCalls ?? []) {
-                if (!call.name || !call.args) {
+            for (const part of chunk.candidates?.[0]?.content?.parts ?? []) {
+                const call = part.functionCall;
+                if (!call?.name || !call.args) {
                     continue;
                 }
 
@@ -45,6 +46,9 @@ export class GoogleLlmClient implements LlmClient {
                         id: call.id ?? crypto.randomUUID(),
                         name: call.name,
                         arguments: call.args,
+                        ...(part.thoughtSignature === undefined
+                            ? {}
+                            : { thoughtSignature: part.thoughtSignature }),
                     },
                 };
             }
@@ -68,11 +72,12 @@ export class GoogleLlmClient implements LlmClient {
                         name: call.name,
                         args: call.arguments,
                     },
+                    ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}),
                 });
             }
         }
 
-        if (message.role === "tool" && message.toolName && message.toolCallId) {
+        if (message.role === "tool") {
             let response: Record<string, unknown> = {};
 
             try {
@@ -85,8 +90,8 @@ export class GoogleLlmClient implements LlmClient {
 
             parts.push({
                 functionResponse: {
-                    id: message.toolCallId,
-                    name: message.toolName,
+                    id: message.toolCallId ?? "",
+                    name: message.toolName ?? "",
                     response,
                 },
             });

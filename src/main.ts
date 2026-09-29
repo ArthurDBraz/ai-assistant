@@ -12,6 +12,7 @@ import { FanoutPublisher } from "./publishers/fanout-publisher/fanout-publisher.
 import { HomeAssistantPublisher } from "./publishers/home-assistant-publisher/home-assistant-publisher.js";
 import type { PublisherConfig } from "./config/config.js";
 import type { OutputPublisher } from "./publishers/output-publisher.js";
+import { GoogleLlmClient } from "./llm/google-llm-client.js";
 
 const options = parseCliOptions();
 const userInput = resolvePrompt(options);
@@ -29,7 +30,8 @@ const tools: Tool[] = [
   new GetCurrentDateTimeTool(config.datetime.defaultTimeZone)
 ];
 
-const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
+//const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
+const llmClient = new GoogleLlmClient(config.gemini.model);
 
 const publishers = config.publishers.map(createPublisher);
 const publisher = new FanoutPublisher(publishers);

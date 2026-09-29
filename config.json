@@ -3,6 +3,9 @@
     "host": "http://192.168.0.166:11434",
     "model": "qwen3:4b-instruct"
   },
+  "gemini": {
+    "model": "gemini-3.7-flash"
+  },
   "weather": {
     "defaultLatitude": -30.03,
     "defaultLongitude": -51.23,

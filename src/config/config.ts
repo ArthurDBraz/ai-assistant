@@ -11,6 +11,7 @@ export type PublisherConfig =
 
 export interface Config {
     ollama: { host: string; model: string };
+    gemini: { model: string };
     weather: {
         defaultLatitude: number;
         defaultLongitude: number;
@@ -22,6 +23,7 @@ export interface Config {
 
 interface FileConfig {
     ollama: { host: string; model: string };
+    gemini: { model: string };
     weather: {
         defaultLatitude: number;
         defaultLongitude: number;
