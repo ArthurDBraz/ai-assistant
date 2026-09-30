@@ -1,7 +1,7 @@
-import type { OutputPublisher } from "../output-publisher.js";
+import type { AssistantResponse, OutputPublisher } from "../output-publisher.js";
 
 export class ConsolePublisher implements OutputPublisher {
-    async publish(text: string): Promise<void> {
-        console.log(text);
+    async publish(response: AssistantResponse): Promise<void> {
+        console.log(JSON.stringify(response, null, 2));
     }
 }

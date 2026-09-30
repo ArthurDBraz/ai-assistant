@@ -1,4 +1,4 @@
-import type { OutputPublisher } from "../output-publisher.js";
+import type { AssistantResponse, OutputPublisher } from "../output-publisher.js";
 
 export class HomeAssistantPublisher implements OutputPublisher {
 
@@ -8,7 +8,7 @@ export class HomeAssistantPublisher implements OutputPublisher {
         private readonly entityId: string
     ) {}
 
-    async publish(text: string): Promise<void> {
+    async publish(assistantResponse: AssistantResponse): Promise<void> {
         const response = await fetch(
             `${this.baseUrl}/api/services/input_text/set_value`,
             {
@@ -19,7 +19,7 @@ export class HomeAssistantPublisher implements OutputPublisher {
                 },
                 body: JSON.stringify({
                     "entity_id": this.entityId,
-                    value: text.slice(0,255), // Maximum input size
+                    value: assistantResponse.response.slice(0,255), // Maximum input size
                 })
             }
         );

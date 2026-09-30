@@ -12,7 +12,7 @@
 // Suggested shape:
 //
 //   export interface OutputPublisher {
-//     publish(text: string): Promise<void>;
+//     publish(response: AssistantResponse): Promise<void>;
 //   }
 //
 // Later you'll add implementations next to this file:
@@ -26,6 +26,15 @@
 //       \u2014 you asked to keep the code unaware that Home Assistant will
 //       eventually be wired.
 
+export type AssistantResponseStatus = "success" | "needs_input" | "error";
+
+export interface AssistantResponse {
+    response: string;
+    intent: string;
+    status: AssistantResponseStatus;
+    attributes?: Record<string, string | number | boolean>;
+}
+
 export interface OutputPublisher {
-    publish(text: string): Promise<void>;
+    publish(response: AssistantResponse): Promise<void>;
 }

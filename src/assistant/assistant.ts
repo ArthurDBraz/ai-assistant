@@ -1,15 +1,6 @@
 import type { JsonSchema, LlmClient, Message, ToolCall } from "../llm/llm-client.js";
-import type { OutputPublisher } from "../publishers/output-publisher.js";
+import type { AssistantResponse, AssistantResponseStatus, OutputPublisher } from "../publishers/output-publisher.js";
 import type { Tool } from "../tools/tool.js";
-
-type AssistantResponseStatus = "success" | "needs_input" | "error";
-
-interface AssistantResponse {
-    response: string;
-    intent: string;
-    status: AssistantResponseStatus;
-    attributes?: Record<string, string | number | boolean>;
-}
 
 const assistantResponseSchema: JsonSchema = {
     type: "object",
@@ -74,12 +65,16 @@ export class Assistant {
             if (toolCalls.length === 0) {
                 const response = this.parseResponse(content);
                 if (response) {
-                    await this.publisher.publish(response.response);
+                    await this.publisher.publish(response);
                     break;
                 }
 
                 if (responseAttempts === 1) {
-                    await this.publisher.publish(invalidResponseMessage);
+                    await this.publisher.publish({
+                        response: invalidResponseMessage,
+                        intent: "assistant.invalid_response",
+                        status: "error",
+                    });
                     break;
                 }
 

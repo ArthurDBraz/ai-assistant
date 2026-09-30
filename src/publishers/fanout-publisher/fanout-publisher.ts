@@ -1,11 +1,11 @@
-import type { OutputPublisher } from "../output-publisher.js";
+import type { AssistantResponse, OutputPublisher } from "../output-publisher.js";
 
 export class FanoutPublisher implements OutputPublisher {
     constructor(private readonly publishers: readonly OutputPublisher[]) {}
 
-    async publish(text: string): Promise<void> {
+    async publish(response: AssistantResponse): Promise<void> {
         await Promise.all(
-            this.publishers.map((publisher) => publisher.publish(text)),
+            this.publishers.map((publisher) => publisher.publish(response)),
         );
     }
 }
