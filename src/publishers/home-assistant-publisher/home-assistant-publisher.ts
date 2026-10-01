@@ -10,7 +10,7 @@ export class HomeAssistantPublisher implements OutputPublisher {
 
     async publish(assistantResponse: AssistantResponse): Promise<void> {
         const response = await fetch(
-            `${this.baseUrl}/api/services/input_text/set_value`,
+            `${this.baseUrl}/api/states/${this.entityId}`,
             {
                 method: "POST",
                 headers: {
@@ -18,8 +18,11 @@ export class HomeAssistantPublisher implements OutputPublisher {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    "entity_id": this.entityId,
-                    value: assistantResponse.response.slice(0,255), // Maximum input size
+                    "state": assistantResponse.response.slice(0,255), // Maximum input size
+                    "attributes": {
+                        "temperature": assistantResponse.attributes?.temperature,
+                        "season": assistantResponse.attributes?.season,
+                    }
                 })
             }
         );

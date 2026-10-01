@@ -22,7 +22,7 @@
       "type": "home-assistant",
       "baseUrl": "http://192.168.0.166:8123",
       "tokenEnv": "HOME_ASSISTANT_TOKEN",
-      "entityId": "input_text.ai_assistant_response"
+      "entityId": "sensor.ai_assistant"
     }
   ]
 }
