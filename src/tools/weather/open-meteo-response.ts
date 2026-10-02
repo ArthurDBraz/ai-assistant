@@ -8,8 +8,8 @@ export interface OpenMeteoResponse {
   elevation: number
   current_units: CurrentUnits
   current: Current
-  hourly_units: HourlyUnits
-  hourly: Hourly
+  daily_units: DailyUnits
+  daily: Daily
 }
 
 export interface CurrentUnits {
@@ -26,16 +26,16 @@ export interface Current {
   wind_speed_10m: number
 }
 
-export interface HourlyUnits {
+export interface DailyUnits {
   time: string
-  temperature_2m: string
-  relative_humidity_2m: string
-  wind_speed_10m: string
+  weather_code: string
+  temperature_2m_min: string
+  temperature_2m_max: string
 }
 
-export interface Hourly {
+export interface Daily {
   time: string[]
-  temperature_2m: number[]
-  relative_humidity_2m: number[]
-  wind_speed_10m: number[]
+  weather_code: number[]
+  temperature_2m_min: number[]
+  temperature_2m_max: number[]
 }
