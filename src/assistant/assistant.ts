@@ -14,14 +14,14 @@ const assistantResponseSchema: JsonSchema = {
         },
         attributes: {
             type: "object",
-            description: "Optional primitive metadata for future entity mappings.",
-            additionalProperties: {
-                anyOf: [
-                    { type: "string" },
-                    { type: "number" },
-                    { type: "boolean" },
-                ],
+            description: "Additional attributes to publish alongside the response.",
+            properties: {
+                city: { type: "string" },
+                temperatureC: { type: "number" },
+                forecast: { type: "string", description: "A short weather forecast.", enum: ["clear", "partly_cloudy", "fog", "drizzle", "rain", "snow", "rain_showers", "snow_showers", "thunderstorm", "unknown"] },
             },
+            required: ["temperatureC", "forecast"],
+            additionalProperties: false,
         },
     },
     required: ["response", "intent", "status"],
@@ -35,7 +35,7 @@ export class Assistant {
         private readonly llmClient: LlmClient,
         private readonly tools: Tool[],
         private readonly publisher: OutputPublisher,
-    ) {}
+    ) { }
 
     async run(userInput: string, systemPrompt?: string): Promise<void> {
 
@@ -45,7 +45,7 @@ export class Assistant {
         ];
         const toolSchemas = this.tools.map((tool) => tool.schema);
         let responseAttempts = 0;
-        
+
         while (true) {
             const stream = this.llmClient.chat(messages, toolSchemas, {
                 responseFormat: assistantResponseSchema,
@@ -107,13 +107,13 @@ export class Assistant {
     }
 
     private async executeTool(call: ToolCall) {
-      const tool = this.tools.find(t => t.schema.name === call.name);
-    
-      if (tool === undefined) {
-        throw Error(`Tool "${call.name}" not found`);
-      }
-    
-      return await tool?.execute(call.arguments);
+        const tool = this.tools.find(t => t.schema.name === call.name);
+
+        if (tool === undefined) {
+            throw Error(`Tool "${call.name}" not found`);
+        }
+
+        return await tool?.execute(call.arguments);
     }
 
     private parseResponse(content: string): AssistantResponse | undefined {

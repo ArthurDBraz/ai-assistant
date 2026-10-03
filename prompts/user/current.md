@@ -1,1 +1,1 @@
-Give me the current weather and a clothing suggestion for today.
+Give me the current weather and forecast. Suggest clothing for today.

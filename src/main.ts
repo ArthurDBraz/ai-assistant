@@ -13,6 +13,7 @@ import { HomeAssistantPublisher } from "./publishers/home-assistant-publisher/ho
 import type { PublisherConfig } from "./config/config.js";
 import type { OutputPublisher } from "./publishers/output-publisher.js";
 import { GoogleLlmClient } from "./llm/google-llm-client.js";
+import { GetForecastTool } from "./tools/weather/get-forecast-tool.js";
 
 const options = parseCliOptions();
 const userInput = resolvePrompt(options);
@@ -27,7 +28,8 @@ const weatherService = new OpenMeteoWeatherService(
 
 const tools: Tool[] = [
   new GetTemperatureTool(weatherService),
-  new GetCurrentDateTimeTool(config.datetime.defaultTimeZone)
+  new GetCurrentDateTimeTool(config.datetime.defaultTimeZone),
+  new GetForecastTool(weatherService),
 ];
 
 //const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);

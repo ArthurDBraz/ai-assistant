@@ -2,11 +2,11 @@ import type { ToolSchema } from "../../llm/llm-client.js";
 import type { Tool } from "../tool.js"
 import type { WeatherService } from "./weather-service.js";
 
-export class GetTemperatureTool implements Tool {
+export class GetForecastTool implements Tool {
 
     readonly schema: ToolSchema = {
-      name: "get_temperature",
-      description: "Get the current temperature for a city",
+      name: "get_forecast",
+      description: "Get the weather forecast for the current day for a city",
       parameters: {
         type: "object",
         required: ["city"],
@@ -16,6 +16,6 @@ export class GetTemperatureTool implements Tool {
     constructor (private readonly weatherService: WeatherService) {}
 
     async execute(args: { city?: string }): Promise<unknown> {
-      return await this.weatherService.getWeather(args.city ?? "");
+      return await this.weatherService.getForecast(args.city ?? "");
     }
 }

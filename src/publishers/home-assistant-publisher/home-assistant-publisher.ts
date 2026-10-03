@@ -20,8 +20,8 @@ export class HomeAssistantPublisher implements OutputPublisher {
                 body: JSON.stringify({
                     "state": assistantResponse.response.slice(0,255), // Maximum input size
                     "attributes": {
-                        "temperature": assistantResponse.attributes?.temperature,
-                        "season": assistantResponse.attributes?.season,
+                        "temperature": assistantResponse.attributes?.temperatureC,
+                        "forecast": assistantResponse.attributes?.forecast,
                     }
                 })
             }
