@@ -2,18 +2,18 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { OpenMeteoWeatherService } from "./tools/weather/open-meteo-weather-service.js";
 import { loadConfig } from "./config/config.js";
-import { OllamaLLMClient } from "./llm/ollama-llm-client.js";
+// import { OllamaLLMClient } from "./llm/ollama-llm-client.js";
 import type { Tool } from "./tools/tool.js";
 import { GetCurrentDateTimeTool } from "./tools/datetime/get-current-datetime-tool.js";
-import { GetTemperatureTool } from "./tools/weather/get-temperature-tool.js";
+import { GetTemperatureTool } from "./tools/homeassistant/get-temperature-tool.js";
 import { Assistant } from "./assistant/assistant.js";
-import { ConsolePublisher } from "./publishers/console-publisher/console-publisher.js";
 import { FanoutPublisher } from "./publishers/fanout-publisher/fanout-publisher.js";
 import { HomeAssistantPublisher } from "./publishers/home-assistant-publisher/home-assistant-publisher.js";
-import type { PublisherConfig } from "./config/config.js";
+import type { Config } from "./config/config.js";
 import type { OutputPublisher } from "./publishers/output-publisher.js";
 import { GoogleLlmClient } from "./llm/google-llm-client.js";
 import { GetForecastTool } from "./tools/weather/get-forecast-tool.js";
+import { HomeAssistantService } from "./tools/homeassistant/home-assistant-service.js";
 
 const options = parseCliOptions();
 const userInput = resolvePrompt(options);
@@ -26,8 +26,10 @@ const weatherService = new OpenMeteoWeatherService(
   config.weather.defaultLongitude,
 );
 
+const homeAssistantService = new HomeAssistantService(config.homeassistant.baseUrl, config.homeassistant.token ?? "");
+
 const tools: Tool[] = [
-  new GetTemperatureTool(weatherService),
+  new GetTemperatureTool(homeAssistantService),
   new GetCurrentDateTimeTool(config.datetime.defaultTimeZone),
   new GetForecastTool(weatherService),
 ];
@@ -35,7 +37,7 @@ const tools: Tool[] = [
 //const llmClient = new OllamaLLMClient(config.ollama.host, config.ollama.model);
 const llmClient = new GoogleLlmClient(config.gemini.model);
 
-const publishers = config.publishers.map(createPublisher);
+const publishers = [createPublisher(config)];
 const publisher = new FanoutPublisher(publishers);
 
 const assistant = new Assistant(llmClient, tools, publisher)
@@ -94,15 +96,18 @@ function resolveSystemPrompt(options: ReturnType<typeof parseCliOptions>): strin
   return readFileSync(systemPromptFile, "utf8");
 }
 
-function createPublisher(config: PublisherConfig): OutputPublisher {
-  switch (config.type) {
-    case "console":
-      return new ConsolePublisher();
-    case "home-assistant":
-      return new HomeAssistantPublisher(
-        config.baseUrl,
-        config.token,
-        config.entityId,
-      );
+function createPublisher(config: Config): OutputPublisher {
+  if (!config.homeassistant.token) {
+      throw new Error("Home Assistant token is required");
   }
+
+  if (!config.homeassistant.entityId) {
+      throw new Error("Home Assistant entity ID is required");
+  }
+
+  return new HomeAssistantPublisher(
+    config.homeassistant.baseUrl,
+    config.homeassistant.token,
+    config.homeassistant.entityId
+  );
 }

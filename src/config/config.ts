@@ -12,17 +12,23 @@ export type PublisherConfig =
 export interface Config {
     ollama: { host: string; model: string };
     gemini: { model: string };
+    homeassistant: { baseUrl: string; token?: string | undefined; entityId?: string | undefined };
     weather: {
         defaultLatitude: number;
         defaultLongitude: number;
         defaultCity: string;
     };
     datetime: { defaultTimeZone: string };
-    publishers: PublisherConfig[];
 }
 
 interface FileConfig {
     ollama: { host: string; model: string };
+    homeassistant: {
+        baseUrl: string;
+        token?: string | undefined;
+        tokenEnv?: string | undefined;
+        entityId?: string | undefined;
+    };
     gemini: { model: string };
     weather: {
         defaultLatitude: number;
@@ -30,17 +36,7 @@ interface FileConfig {
         defaultCity: string;
     };
     datetime: { defaultTimeZone: string };
-    publishers: FilePublisherConfig[];
 }
-
-type FilePublisherConfig =
-    | { type: "console" }
-    | {
-          type: "home-assistant";
-          baseUrl: string;
-          tokenEnv: string;
-          entityId: string;
-      };
 
 export function loadConfig(): Config {
     const path = new URL("../../config.json", import.meta.url);
@@ -50,26 +46,31 @@ export function loadConfig(): Config {
         throw new Error("config.json has an invalid format");
     }
 
+    const homeAssistantToken = resolveHomeAssistantToken(fileConfig.homeassistant);
+
     return {
-        ...fileConfig,
-        publishers: fileConfig.publishers.map((publisher) => {
-            if (publisher.type === "console") {
-                return publisher;
-            }
-
-            const token = process.env[publisher.tokenEnv];
-            if (!token) {
-                throw new Error(`missing environment variable: ${publisher.tokenEnv}`);
-            }
-
-            return {
-                type: "home-assistant",
-                baseUrl: publisher.baseUrl,
-                token,
-                entityId: publisher.entityId,
-            };
-        }),
+        ollama: fileConfig.ollama,
+        gemini: fileConfig.gemini,
+        weather: fileConfig.weather,
+        datetime: fileConfig.datetime,
+        homeassistant: {
+            baseUrl: fileConfig.homeassistant.baseUrl,
+            token: homeAssistantToken,
+            entityId: fileConfig.homeassistant.entityId,
+        },
     };
+}
+
+function resolveHomeAssistantToken(homeassistant: FileConfig["homeassistant"]): string | undefined {
+    if (homeassistant.tokenEnv) {
+        return process.env[homeassistant.tokenEnv];
+    }
+    
+    if (homeassistant.token) {
+        return homeassistant.token;
+    }
+
+    return undefined;
 }
 
 function isFileConfig(value: unknown): value is FileConfig {
@@ -81,33 +82,22 @@ function isFileConfig(value: unknown): value is FileConfig {
         isRecord(value.ollama) &&
         isString(value.ollama.host) &&
         isString(value.ollama.model) &&
+        isRecord(value.homeassistant) &&
+        isString(value.homeassistant.baseUrl) &&
+        (value.homeassistant.token === undefined || isString(value.homeassistant.token)) &&
+        (value.homeassistant.tokenEnv === undefined || isString(value.homeassistant.tokenEnv)) &&
+        (value.homeassistant.entityId === undefined || isString(value.homeassistant.entityId)) &&
+        isRecord(value.gemini) &&
+        isString(value.gemini.model) &&
         isRecord(value.weather) &&
         isNumber(value.weather.defaultLatitude) &&
         isNumber(value.weather.defaultLongitude) &&
         isString(value.weather.defaultCity) &&
         isRecord(value.datetime) &&
-        isString(value.datetime.defaultTimeZone) &&
-        Array.isArray(value.publishers) &&
-        value.publishers.every(isFilePublisherConfig)
+        isString(value.datetime.defaultTimeZone)
     );
 }
 
-function isFilePublisherConfig(value: unknown): value is FilePublisherConfig {
-    if (!isRecord(value) || !isString(value.type)) {
-        return false;
-    }
-
-    if (value.type === "console") {
-        return true;
-    }
-
-    return (
-        value.type === "home-assistant" &&
-        isString(value.baseUrl) &&
-        isString(value.tokenEnv) &&
-        isString(value.entityId)
-    );
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
